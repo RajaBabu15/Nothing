@@ -11,4 +11,3 @@ def stop_on_loud_sound(video_frame, frame_counts, elapsed_time):
 
 recorder = VideoRecorder(filename="loud_sound.avi", stop_callback=stop_on_loud_sound, directory="my_recordings")
 recorder.start()
-recorder.join()

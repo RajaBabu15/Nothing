@@ -3,26 +3,21 @@ import wave
 import threading
 import time
 import os
-from .utils import get_unique_filename, create_output_directory
+from common.file_management import get_unique_filename, create_output_directory
+from common.config import AUDIO_SETTINGS, OUTPUT_DIRECTORIES
+from common.exceptions import AudioRecorderError
 
 class AudioRecorder:
-    def __init__(self, rate=44100, 
-                    frames_per_buffer=1024, 
-                    channels=2, 
-                    format=pyaudio.paInt16, 
-                    filename="temp_audio.wav", 
-                    directory="recordings", 
-                    frame_callback=None, 
-                    duration=10, 
-                    stop_callback=None):
+    def __init__(self, filename="temp_audio.wav", directory=None, frame_callback=None, duration=10, stop_callback=None):
         self.open = False
-        self.rate = rate
-        self.frames_per_buffer = frames_per_buffer
-        self.channels = channels
-        self.format = format
-        self.directory = directory
+        self.rate = AUDIO_SETTINGS['rate']
+        self.frames_per_buffer = AUDIO_SETTINGS['frames_per_buffer']
+        self.channels = AUDIO_SETTINGS['channels']
+        self.format = pyaudio.paInt16  # Convert format string to actual PyAudio format
+        self.directory = directory or OUTPUT_DIRECTORIES['audio']
+        
         create_output_directory(self.directory)
-        self.filename = get_unique_filename(filename)
+        self.filename = get_unique_filename(filename, self.directory)
         self.full_path = os.path.join(self.directory, self.filename)
         self.frame_callback = frame_callback
         self.duration = duration
@@ -30,27 +25,20 @@ class AudioRecorder:
         self.audio = pyaudio.PyAudio()
         self.audio_stream = None
         self.audio_frames = []
-        self.start_time = time.time()
         self.thread = None
-
-        # Ensure the directory exists
-        os.makedirs(self.directory, exist_ok=True)
 
     def record(self):
         try:
             self.audio_stream = self.audio.open(format=self.format,
-                                            channels=self.channels,
-                                            rate=self.rate,
-                                            input=True,
-                                            frames_per_buffer=self.frames_per_buffer)
+                                                channels=self.channels,
+                                                rate=self.rate,
+                                                input=True,
+                                                frames_per_buffer=self.frames_per_buffer)
             self.audio_stream.start_stream()
             self.open = True
             start_time = time.time()
 
-            if self.open:
-                print("Audio Recording Started")
-                self.audio_frames.clear()
-
+            print("Audio Recording Started")
             while self.open:
                 data = self.audio_stream.read(self.frames_per_buffer)
                 self.audio_frames.append(data)
@@ -63,7 +51,8 @@ class AudioRecorder:
                     break
 
         except Exception as e:
-            print(f"An error occurred during audio recording: {e}")
+            raise AudioRecorderError(f"An error occurred during audio recording: {e}")
+
         finally:
             self.stop()
 
@@ -74,9 +63,8 @@ class AudioRecorder:
                 self.audio_stream.stop_stream()
                 self.audio_stream.close()
             self.audio.terminate()
-            print("Audio Recording complete!")
 
-            print(f"Audio Saving recording to: {self.full_path}")
+            print(f"Audio Recording complete! Saving to: {self.full_path}")
 
             with wave.open(self.full_path, 'wb') as waveFile:
                 waveFile.setnchannels(self.channels)
