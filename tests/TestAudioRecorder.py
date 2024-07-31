@@ -1,14 +1,33 @@
+# tests/TestAudioRecorder.py
+
+import unittest
 from src.audio_recorder.recorder import AudioRecorder
 
-# Record for 5 seconds
-with AudioRecorder(filename="my_audio.wav", duration=5) as recorder:
-    pass
+class TestAudioRecorder(unittest.TestCase):
 
+    def test_audio_recording_basic(self):
+        """Test basic audio recording functionality."""
+        try:
+            with AudioRecorder(filename="my_audio.wav", duration=5, directory="test_recordings") as recorder:
+                pass
+            self.assertTrue(True, "Audio recording completed successfully.")
+        except Exception as e:
+            self.fail(f"Audio recording failed with exception: {e}")
 
-# Or, if you want to use a custom stop callback:
-def stop_on_loud_sound(data, frames_per_buffer, elapsed_time, audio_frames):
-    # This is just an example. You'd need to implement actual loudness detection.
-    return max(abs(int.from_bytes(data, byteorder='little', signed=True)) for _ in range(frames_per_buffer)) > 1000
+    def test_audio_recording_with_stop_callback(self):
+        """Test audio recording with a custom stop callback based on loudness."""
 
-recorder = AudioRecorder(filename="loud_sound.wav", stop_callback=stop_on_loud_sound)
-recorder.start()
+        def stop_on_loud_sound(data, frames_per_buffer, elapsed_time, audio_frames):
+            # Example logic for loudness detection
+            return max(abs(int.from_bytes(data, byteorder='little', signed=True)) for _ in range(frames_per_buffer)) > 1000
+
+        try:
+            recorder = AudioRecorder(filename="loud_sound.wav", stop_callback=stop_on_loud_sound, directory="test_recordings")
+            recorder.start()
+            recorder.join()  # Wait for the recording to finish
+            self.assertTrue(True, "Audio recording with stop callback completed successfully.")
+        except Exception as e:
+            self.fail(f"Audio recording with stop callback failed with exception: {e}")
+
+if __name__ == '__main__':
+    unittest.main()
