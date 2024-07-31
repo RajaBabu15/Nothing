@@ -101,6 +101,12 @@ python tests/TestAudioRecorder.py
 python tests/TestVideoRecorder.py
 ```
 
+Or you can use a test discovery tool like `pytest` to run all tests in the `tests` directory:
+
+```bash
+pytest tests
+```
+
 ### Directory Setup
 
 Before recording, ensure that the directory for recordings exists. The `AudioRecorder` and `VideoRecorder` classes will automatically create the directory if it doesn't exist before saving the files.
